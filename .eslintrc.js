@@ -11,7 +11,6 @@ module.exports = {
     "rules": {
       "no-script-url": "off",
       "linebreak-style": "off",
-      "indent": ["off", 4],
       "semi": ["off"],
       "arrow-parens": ["off"],
       "compat/compat": "off",
