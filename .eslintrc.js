@@ -4,9 +4,6 @@
 module.exports = {
     "parser": "babel-eslint",
     "extends": "airbnb",
-    "ecmaFeatures": {
-      "modules": true
-    },
     "env": {
       "node": true,
       "mocha": true
@@ -40,4 +37,3 @@ module.exports = {
       "compat"
     ]
   }
-  
