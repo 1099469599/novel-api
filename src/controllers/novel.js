@@ -60,7 +60,7 @@ export async function getContent({ url }) {
   if (!rule) return { message: '规则不存在' };
 
   const { content, encoding } = rule;
-  let res = await rp.get(url, { encoding: null });
+  let res = await rp.get(url, { encoding: null, headers });
   res = iconv.decode(Buffer.from(res), encoding);
   const $ = cheerio.load(res);
 
