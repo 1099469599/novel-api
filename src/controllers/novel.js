@@ -52,7 +52,6 @@ export async function crawlerAllChapters({ rule, url }) {
   let res = await rp.get(url, { encoding: null, headers });
   res = iconv.decode(Buffer.from(res), encoding);
   // debug(res);
-  console.log(res);
   const $ = cheerio.load(res);
   const chapters = [];
   eval(chapter).each((index, item) => {
@@ -71,11 +70,11 @@ export async function getAllChapters({ url }) {
   return chapters;
 }
 
-async function crawlerContent({ rule, url, dir, retry = 0 }) {
+async function crawlerContent({ rule, title, url, dir, retry = 0 }) {
   const filePath = path.join(dir, `${md5(url)}.txt`);
   if (dir) {
     if (fs.existsSync(filePath)) {
-      return fs.readFileSync(filePath, 'utf8');
+      return { title, url, content: fs.readFileSync(filePath, 'utf8') };
     }
   }
   const { content, encoding } = rule;
@@ -92,7 +91,9 @@ async function crawlerContent({ rule, url, dir, retry = 0 }) {
     retry += 1;
     res = await crawlerContent({ rule, url, dir, retry });
   }
-
+  if (dir) {
+    return { title, url, content: res };
+  }
   return res;
 }
 
@@ -117,8 +118,12 @@ export async function download({ url }) {
 
   const chapters = await crawlerAllChapters({ rule, url });
 
-  const res = await Promise.all(chapters.map(item => crawlerContent({ rule, url: item.url, dir })));
-  fs.writeFileSync('特战神医.txt', res);
+  const res = await Promise.all(chapters.map(item => crawlerContent({ rule, title: item.title, url: item.url, dir })));
+  let content = '';
+  res.forEach(item => {
+    content += item.title + '\n' + item.content + '\n';
+  });
+  fs.writeFileSync('特战神医.txt', content);
   return res;
 }
 
