@@ -5,6 +5,10 @@ import { parse as urlParse, resolve as urlResolve } from 'url';
 import { Rule } from '../models';
 import ApiError from '../errors/ApiError';
 
+const headers = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36'
+};
+
 const getRealUrl = (opt) => {
   return new Promise((resolve, reject) => {
     rp.get(opt.url, { followRedirect: false }, (error, response) => {
@@ -22,9 +26,7 @@ export async function search({ wd, pn }) {
   let res = await rp.get('https://www.baidu.com/s',
     {
       qs: { wd, pn },
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36'
-      }
+      headers
     }
   );
   const $ = cheerio.load(res);
@@ -42,7 +44,7 @@ export async function getAllChapters({ url }) {
   if (!rule) throw new ApiError('RULE_NOT_EXIST');;
   const { chapter, encoding } = rule;
 
-  let res = await rp.get(url, { encoding: null });
+  let res = await rp.get(url, { encoding: null, headers });
   res = iconv.decode(Buffer.from(res), encoding);
   const $ = cheerio.load(res);
   const chapters = [];
