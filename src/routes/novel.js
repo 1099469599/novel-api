@@ -1,5 +1,5 @@
 import Router from 'koa-router';
-import { search, getAllChapters, getContent } from '../controllers/novel';
+import { search, getAllChapters, getContent, download } from '../controllers/novel';
 
 const router = new Router({
   prefix: '/novel'
@@ -16,6 +16,9 @@ router
   })
   .get('/content', async (ctx) => {
     const res = await getContent(ctx.query);
+    ctx.body = res;
+  }).get('/download', async (ctx) => {
+    const res = await download(ctx.query);
     ctx.body = res;
   });
 

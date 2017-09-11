@@ -1,12 +1,20 @@
 const rp = require('request-promise').defaults({ simple: false });;
 const cheerio = require('cheerio');
 const iconv = require('iconv-lite');
+const debug = require('debug')('novel')
+import fs from 'fs-extra';
+import path from 'path';
 import { parse as urlParse, resolve as urlResolve } from 'url';
+import crypto from 'crypto';
 import { Rule } from '../models';
 import ApiError from '../errors/ApiError';
 
 const headers = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36'
+};
+
+function md5(text) {
+  return crypto.createHash('md5').update(text).digest('hex');
 };
 
 const getRealUrl = (opt) => {
@@ -38,14 +46,13 @@ export async function search({ wd, pn }) {
   return items;
 }
 
-export async function getAllChapters({ url }) {
-  const host = urlParse(url).host;
-  const rule = await Rule.findOne({ host });
-  if (!rule) throw new ApiError('RULE_NOT_EXIST');;
+export async function crawlerAllChapters({ rule, url }) {
   const { chapter, encoding } = rule;
 
   let res = await rp.get(url, { encoding: null, headers });
   res = iconv.decode(Buffer.from(res), encoding);
+  // debug(res);
+  console.log(res);
   const $ = cheerio.load(res);
   const chapters = [];
   eval(chapter).each((index, item) => {
@@ -54,15 +61,64 @@ export async function getAllChapters({ url }) {
   return chapters;
 }
 
-export async function getContent({ url }) {
+export async function getAllChapters({ url }) {
   const host = urlParse(url).host;
   const rule = await Rule.findOne({ host });
-  if (!rule) return { message: '规则不存在' };
+  if (!rule) throw new ApiError('RULE_NOT_EXIST');;
 
+  const chapters = await crawlerAllChapters({ rule, url });
+
+  return chapters;
+}
+
+async function crawlerContent({ rule, url, dir, retry = 0 }) {
+  const filePath = path.join(dir, `${md5(url)}.txt`);
+  if (dir) {
+    if (fs.existsSync(filePath)) {
+      return fs.readFileSync(filePath, 'utf8');
+    }
+  }
   const { content, encoding } = rule;
   let res = await rp.get(url, { encoding: null, headers });
   res = iconv.decode(Buffer.from(res), encoding);
   const $ = cheerio.load(res);
 
-  return eval(content).text();
+  res = eval(content).text();
+  if (res) {
+    if (dir) {
+      fs.writeFileSync(filePath, res);
+    }
+  } else if (retry < 3) {
+    retry += 1;
+    res = await crawlerContent({ rule, url, dir, retry });
+  }
+
+  return res;
 }
+
+export async function getContent({ url }) {
+  const host = urlParse(url).host;
+  const rule = await Rule.findOne({ host });
+  if (!rule) return { message: '规则不存在' };
+
+  const res = await crawlerContent({ rule, url });
+
+  return res;
+}
+
+
+export async function download({ url }) {
+  const host = urlParse(url).host;
+  const rule = await Rule.findOne({ host });
+  if (!rule) return { message: '规则不存在' };
+
+  const dir = path.join('download', host, md5(url));
+  fs.mkdirpSync(dir);
+
+  const chapters = await crawlerAllChapters({ rule, url });
+
+  const res = await Promise.all(chapters.map(item => crawlerContent({ rule, url: item.url, dir })));
+  fs.writeFileSync('特战神医.txt', res);
+  return res;
+}
+
