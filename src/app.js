@@ -1,7 +1,3 @@
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
-process.env['https_proxy'] = 'http://127.0.0.1:8888';
-process.env['http_proxy'] = 'http://127.0.0.1:8888';
-
 import Koa from 'Koa';
 import cors from 'kcors';
 import bodyParser from 'koa-bodyparser';
